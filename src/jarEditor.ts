@@ -1,23 +1,28 @@
 import * as vscode from 'vscode';
+import * as JSZip from 'jszip';
+
+type FileList = Map<string, JSZip.JSZipObject>;
 
 class JarDocument implements vscode.CustomDocument {
 
 	static async create(uri: vscode.Uri): Promise<JarDocument> {
-		// If we have a backup, read that. Otherwise read the resource from the workspace
 		const fileData = await JarDocument.readFile(uri);
 		return new JarDocument(uri, fileData);
 	}
 
-	private static async readFile(uri: vscode.Uri): Promise<Uint8Array> {
-		if (uri.scheme === 'untitled') {
-			return new Uint8Array();
-		}
-		return vscode.workspace.fs.readFile(uri);
+	private static async readFile(uri: vscode.Uri): Promise<FileList> {
+		const rawData = await vscode.workspace.fs.readFile(uri);
+		const zipData = await JSZip.loadAsync(rawData);
+		const files = new Map<string, JSZip.JSZipObject>();
+		zipData.forEach((relativePath, file) => {
+			files.set(relativePath, file);
+		});
+		return files;
 	}
 
 	private constructor(
 		readonly uri: vscode.Uri,
-		readonly content: Uint8Array) {}
+		readonly fileList: FileList) {}
 
 	dispose(): void {}
 }
@@ -60,18 +65,26 @@ export class JarEditorProvider implements vscode.CustomEditorProvider {
 		return document;
 	}
 
-	async resolveCustomEditor(document: vscode.CustomDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): Promise<void> {
-		// Setup initial content for the webview
+	async resolveCustomEditor(
+		document: vscode.CustomDocument,
+		webviewPanel: vscode.WebviewPanel,
+		token: vscode.CancellationToken)
+	: Promise<void> {
+
 		webviewPanel.webview.options = {
 			enableScripts: true,
 		};
-		webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
+		if (document instanceof JarDocument) {
+			webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview, document);
+		}
 	}
 
 	/**
 	 * Get the static html used for the editor webviews.
 	 */
-	private getHtmlForWebview(webview: vscode.Webview): string {
+	private getHtmlForWebview(webview: vscode.Webview, document: JarDocument): string {
+		var list = "";
+		document.fileList.forEach((file, path) => list += `<li>${path}</li>`);
 		return /* html */`
 			<!DOCTYPE html>
 			<html lang="en">
@@ -80,7 +93,7 @@ export class JarEditorProvider implements vscode.CustomEditorProvider {
 				<title>Jar Viewer</title>
 			</head>
 			<body>
-				<h1>Jar Viewer</h1>
+				<ul>${list}</ul>
 			</body>
 			</html>`;
 	}
