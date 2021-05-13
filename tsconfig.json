@@ -17,6 +17,10 @@
 	},
 	"exclude": [
 		"node_modules",
-		".vscode-test"
+		".vscode-test",
+		"**/app/index.css",
+		"**/app/index.tsx",
+		"**/app/jarview.tsx",
+		"**/app/tsconfig.json",
 	]
 }

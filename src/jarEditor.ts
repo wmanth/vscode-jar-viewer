@@ -1,28 +1,28 @@
 import * as vscode from 'vscode';
 import * as JSZip from 'jszip';
-
-type FileList = Map<string, JSZip.JSZipObject>;
+import * as path from 'path';
+import { Package } from './app/model';
 
 class JarDocument implements vscode.CustomDocument {
 
 	static async create(uri: vscode.Uri): Promise<JarDocument> {
-		const fileData = await JarDocument.readFile(uri);
-		return new JarDocument(uri, fileData);
+		const fileList = await JarDocument.readFile(uri);
+		return new JarDocument(uri, fileList);
 	}
 
-	private static async readFile(uri: vscode.Uri): Promise<FileList> {
+	private static async readFile(uri: vscode.Uri): Promise<string[]> {
 		const rawData = await vscode.workspace.fs.readFile(uri);
 		const zipData = await JSZip.loadAsync(rawData);
-		const files = new Map<string, JSZip.JSZipObject>();
-		zipData.forEach((relativePath, file) => {
-			files.set(relativePath, file);
+		const fileList: string[] = [];
+		zipData.forEach((name, zipObject) => {
+			fileList.push(name);
 		});
-		return files;
+		return fileList;
 	}
 
 	private constructor(
 		readonly uri: vscode.Uri,
-		readonly fileList: FileList) {}
+		readonly content: string[]) {}
 
 	dispose(): void {}
 }
@@ -65,16 +65,14 @@ export class JarEditorProvider implements vscode.CustomEditorProvider {
 		return document;
 	}
 
-	async resolveCustomEditor(
-		document: vscode.CustomDocument,
-		webviewPanel: vscode.WebviewPanel,
-		token: vscode.CancellationToken)
-	: Promise<void> {
-
-		webviewPanel.webview.options = {
-			enableScripts: true,
-		};
+	resolveCustomEditor(document: vscode.CustomDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {
 		if (document instanceof JarDocument) {
+			webviewPanel.webview.options = {
+				enableScripts: true,
+				localResourceRoots: [
+					vscode.Uri.file(path.join(this.context.extensionPath, "out-app"))
+				]
+			};
 			webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview, document);
 		}
 	}
@@ -83,17 +81,33 @@ export class JarEditorProvider implements vscode.CustomEditorProvider {
 	 * Get the static html used for the editor webviews.
 	 */
 	private getHtmlForWebview(webview: vscode.Webview, document: JarDocument): string {
-		var list = "";
-		document.fileList.forEach((file, path) => list += `<li>${path}</li>`);
+		// Local path to main script run in the webview
+		const reactAppPath = path.join(this.context.extensionPath, "out-app", "jar-viewer.js");
+		const reactAppUri = vscode.Uri.file(reactAppPath).with({ scheme: "vscode-resource" });
+
+		const contentJson = JSON.stringify(document.content);
+
 		return /* html */`
 			<!DOCTYPE html>
 			<html lang="en">
 			<head>
 				<meta charset="UTF-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<title>Jar Viewer</title>
+
+				<meta http-equiv="Content-Security-Policy"
+					content="default-src 'none';
+						img-src https:;
+						script-src 'unsafe-eval' 'unsafe-inline' vscode-resource:;
+						style-src vscode-resource: 'unsafe-inline';">
+				<script>
+					window.acquireVsCodeApi = acquireVsCodeApi;
+					window.jarContent = ${contentJson}
+				</script>
 			</head>
 			<body>
-				<ul>${list}</ul>
+				<div id="root"></div>
+				<script src="${reactAppUri}"></script>
 			</body>
 			</html>`;
 	}
