@@ -1,19 +1,20 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { JarView } from './jarview';
+import { JarContent } from './model';
 
 import './index.css';
 
 declare global {
 	interface Window {
 		acquireVsCodeApi(): any;
-		jarContent: string[];
+		jarContent: JarContent;
 	}
 }
 
-//const vscode = window.acquireVsCodeApi();
+const vsCodeApi = window.acquireVsCodeApi();
 
 ReactDOM.render(
-	<JarView fileList={ window.jarContent }/>,
+	<JarView jarContent={ window.jarContent } vsCodeApi={ vsCodeApi }/>,
 	document.getElementById('root')
 );

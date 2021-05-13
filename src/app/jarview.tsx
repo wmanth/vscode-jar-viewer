@@ -1,14 +1,17 @@
 import * as React from 'react';
+import { JarContent } from './model';
+
+import './jarview.css';
 
 interface JarViewProps {
-	fileList: string[]
+	jarContent: JarContent
+	vsCodeApi: any
 }
 
 export const JarView = (props: JarViewProps) => {
-	return <React.Fragment>
-		<h1>Jar View</h1>
+	return <div className="jar-view">
 		<ul>
-			{ props.fileList.map(item => <li>{ item }</li>) }
+			{ props.jarContent.fileList.map(item => <li>{ item }</li>) }
 		</ul>
-	</React.Fragment>;
+	</div>;
 };

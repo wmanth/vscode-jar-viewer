@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as JSZip from 'jszip';
 import * as path from 'path';
-import { Package } from './app/model';
+import { JarContent } from './app/model';
 
 class JarDocument implements vscode.CustomDocument {
 
@@ -10,19 +10,19 @@ class JarDocument implements vscode.CustomDocument {
 		return new JarDocument(uri, fileList);
 	}
 
-	private static async readFile(uri: vscode.Uri): Promise<string[]> {
+	private static async readFile(uri: vscode.Uri): Promise<JarContent> {
 		const rawData = await vscode.workspace.fs.readFile(uri);
 		const zipData = await JSZip.loadAsync(rawData);
-		const fileList: string[] = [];
-		zipData.forEach((name, zipObject) => {
-			fileList.push(name);
+		const jarContent = new JarContent();
+		zipData.forEach((_, zipObject) => {
+			jarContent.addItem(zipObject.name);
 		});
-		return fileList;
+		return jarContent;
 	}
 
 	private constructor(
 		readonly uri: vscode.Uri,
-		readonly content: string[]) {}
+		readonly content: JarContent) {}
 
 	dispose(): void {}
 }
@@ -85,7 +85,7 @@ export class JarEditorProvider implements vscode.CustomEditorProvider {
 		const reactAppPath = path.join(this.context.extensionPath, "out-app", "jar-viewer.js");
 		const reactAppUri = vscode.Uri.file(reactAppPath).with({ scheme: "vscode-resource" });
 
-		const contentJson = JSON.stringify(document.content);
+		const jarContentJson = JSON.stringify(document.content);
 
 		return /* html */`
 			<!DOCTYPE html>
@@ -102,7 +102,7 @@ export class JarEditorProvider implements vscode.CustomEditorProvider {
 						style-src vscode-resource: 'unsafe-inline';">
 				<script>
 					window.acquireVsCodeApi = acquireVsCodeApi;
-					window.jarContent = ${contentJson}
+					window.jarContent = ${jarContentJson}
 				</script>
 			</head>
 			<body>

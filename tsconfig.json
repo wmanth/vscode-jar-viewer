@@ -18,9 +18,8 @@
 	"exclude": [
 		"node_modules",
 		".vscode-test",
-		"**/app/index.css",
-		"**/app/index.tsx",
-		"**/app/jarview.tsx",
-		"**/app/tsconfig.json",
+		"**/app/*.css",
+		"**/app/*.tsx",
+		"**/app/*.json",
 	]
 }
