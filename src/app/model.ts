@@ -1,8 +1,21 @@
-export class JarContent {
-	readonly fileList: string[] = [];
+import * as path from 'path';
 
-	addItem(name: string) {
-		this.fileList.push(name);
+export class JarContent {
+	readonly packages: JavaPackage[] = [];
+
+	private newJavaPackage(name: string) {
+		const javaPackage = new JavaPackage(name);
+		this.packages.push(javaPackage);
+		return javaPackage;
+	}
+
+	addItem(pathName: string) {
+		if (pathName.endsWith('.class')) {
+			const packageName = path.dirname(pathName).replace(/\//g, '.');
+			const className = path.basename(pathName);
+			const javaPackage = this.packages.find(p => p.name === packageName) || this.newJavaPackage(packageName);
+			javaPackage.javaClasses.push(new JavaClass(className));
+		}
 	}
 }
 

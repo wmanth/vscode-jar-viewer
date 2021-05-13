@@ -15,7 +15,9 @@ class JarDocument implements vscode.CustomDocument {
 		const zipData = await JSZip.loadAsync(rawData);
 		const jarContent = new JarContent();
 		zipData.forEach((_, zipObject) => {
-			jarContent.addItem(zipObject.name);
+			if (!zipObject.dir) {
+				jarContent.addItem(zipObject.name);
+			}
 		});
 		return jarContent;
 	}

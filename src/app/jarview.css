@@ -1,5 +1,31 @@
-.jar-view > ul {
+.tree-list {
 	list-style-type: none;
 	padding: 0;
-	margin: 0;
+	margin-left: 16px;
 }
+
+.jar-view > .tree-list {
+	margin-left: 0;
+}
+
+.list-item {
+	display: flex;
+	flex-direction: row;
+	flex-shrink: 0;
+	flex-grow: 0;
+	align-items: center;
+	cursor: pointer;
+}
+
+.item-title {
+	margin: 0 5px;
+}
+
+.toggle-icon {
+	width: 16px;
+}
+
+.icon-package { color: var(--vscode-symbolIcon-packageForeground) }
+.icon-class { color: var(--vscode-symbolIcon-classForeground) }
+.icon-file { color: var(--vscode-symbolIcon-fileForeground) }
+.icon-folder { color: var(--vscode-symbolIcon-folderForeground) }
