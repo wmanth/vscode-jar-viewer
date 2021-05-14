@@ -1,33 +1,6 @@
 import * as vscode from 'vscode';
-import * as JSZip from 'jszip';
 import * as path from 'path';
-import { JarContent } from './app/model';
-
-class JarDocument implements vscode.CustomDocument {
-
-	static async create(uri: vscode.Uri): Promise<JarDocument> {
-		const fileList = await JarDocument.readFile(uri);
-		return new JarDocument(uri, fileList);
-	}
-
-	private static async readFile(uri: vscode.Uri): Promise<JarContent> {
-		const rawData = await vscode.workspace.fs.readFile(uri);
-		const zipData = await JSZip.loadAsync(rawData);
-		const jarContent = new JarContent();
-		zipData.forEach((_, zipObject) => {
-			if (!zipObject.dir) {
-				jarContent.addItem(zipObject.name);
-			}
-		});
-		return jarContent;
-	}
-
-	private constructor(
-		readonly uri: vscode.Uri,
-		readonly content: JarContent) {}
-
-	dispose(): void {}
-}
+import JarDocument from './JarDocument';
 
 export class JarEditorProvider implements vscode.CustomEditorProvider {
 

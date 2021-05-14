@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';
 import { VscFile, VscFolder, VscFolderOpened, VscPackage, VscSymbolClass } from 'react-icons/vsc';
-import { JarContent, JavaClass, JavaPackage } from './model';
+import { JarContent, JavaPackage, File, Folder, isFolder, isJavaPackage, isJavaClass, JavaClass } from './model';
 
 import './jarview.css';
 
@@ -15,7 +15,7 @@ interface TreeItemProps {
 }
 
 const TreeItem = (props: TreeItemProps) => {
-	const [state, setState] = React.useState(props.childs ? ItemState.collapsed : ItemState.empty);
+	const [state, setState] = React.useState(props.childs?.length ? ItemState.collapsed : ItemState.empty);
 
 	const toggleItemState = () => setState(
 		state === ItemState.collapsed ? ItemState.expanded :
@@ -24,16 +24,16 @@ const TreeItem = (props: TreeItemProps) => {
 	);
 
 	const ToggleIcon = () =>
-		state === ItemState.collapsed ? <VscChevronRight className="toggle-icon" /> :
-		state === ItemState.expanded ? <VscChevronDown className="toggle-icon" /> :
-		<div className="toggle-icon" />;
+		state === ItemState.collapsed ? <VscChevronRight className="fold-icon" /> :
+		state === ItemState.expanded ? <VscChevronDown className="fold-icon" /> :
+		<div className="fold-icon" />;
 
 	const ItemIcon = () =>
-		props.type === ItemType.package ? <VscPackage className="icon-package" /> :
-		props.type === ItemType.class ? <VscSymbolClass className="icon-class" /> :
-		props.type === ItemType.file ? <VscFile className="icon-file" /> :
-		state === ItemState.expanded ? <VscFolderOpened className="icon-folder" /> :
-		<VscFolder className="icon-folder" />;
+		props.type === ItemType.package ? <VscPackage className="type-icon package" /> :
+		props.type === ItemType.class ? <VscSymbolClass className="type-icon class" /> :
+		props.type === ItemType.file ? <VscFile className="type-icon file" /> :
+		state === ItemState.expanded ? <VscFolderOpened className="type-icon folder" /> :
+		<VscFolder className="type-icon folder" />;
 
 	return <React.Fragment>
 		<li className="list-item" onClick={ toggleItemState }>
@@ -64,26 +64,52 @@ interface JarViewProps {
 	vsCodeApi: any
 }
 
-export const JarView = (props: JarViewProps) => {
-	const treeItemProps = props.jarContent.packages.map(pck => CreateTreeItemProps.fromJavaPackage(pck));
-
-	return <div className="jar-view">
-		<TreeViewItemGroup childs={ treeItemProps } />
+export const JarView = (props: JarViewProps) =>
+	<div className="jar-view">
+		<TreeViewItemGroup childs={ [
+			...props.jarContent.packages
+				.sort(byFileName)
+				.map(javaPackageToItemProps),
+			...props.jarContent.files
+				.sort(byFileName)
+				.map(fileToItemProps)
+		] } />
 	</div>;
-};
 
 class CreateTreeItemProps implements TreeItemProps {
+	static fromFile(file: File) {
+		return (
+			isFolder(file) ? this.fromFolder(file) :
+			isJavaClass(file) ? this.fromJavaClass(file) :
+			new CreateTreeItemProps(
+				file.name,
+				ItemType.file)
+		);
+	}
+
+	static fromFolder(folder: Folder) {
+		return (
+			isJavaPackage(folder) ? this.fromJavaPackage(folder) :
+			new CreateTreeItemProps(
+				folder.name,
+				ItemType.folder,
+				folder.files.sort(byFileName).map(fileToItemProps))
+		);
+	}
+
 	static fromJavaPackage(javaPackage: JavaPackage) {
 		return new CreateTreeItemProps(
 			javaPackage.name,
 			ItemType.package,
-			javaPackage.javaClasses.map(cls => CreateTreeItemProps.fromJavaClass(cls)));
+			[...javaPackage.classes.sort(byFileName).map(javaClassToItemProps),
+			 ...javaPackage.files.sort(byFileName).map(fileToItemProps)]);
 	}
 
 	static fromJavaClass(javaClass: JavaClass) {
 		return new CreateTreeItemProps(
 			javaClass.name,
-			ItemType.class);
+			ItemType.class,
+			javaClass.nested.sort(byFileName).map(javaClassToItemProps));
 	}
 
 	private constructor(
@@ -91,3 +117,8 @@ class CreateTreeItemProps implements TreeItemProps {
 		readonly type: ItemType,
 		readonly childs?: TreeItemProps[]) {}
 }
+
+const byFileName = (left: File, right: File) => left.name.localeCompare(right.name);
+const fileToItemProps = (file: File) => CreateTreeItemProps.fromFile(file);
+const javaClassToItemProps = (javaClass: JavaClass) => CreateTreeItemProps.fromJavaClass(javaClass);
+const javaPackageToItemProps = (javaPackage: JavaPackage) => CreateTreeItemProps.fromJavaPackage(javaPackage);

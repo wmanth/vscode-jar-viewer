@@ -1,39 +1,35 @@
-import * as path from 'path';
-
-export class JarContent {
-	readonly packages: JavaPackage[] = [];
-
-	private newJavaPackage(name: string) {
-		const javaPackage = new JavaPackage(name);
-		this.packages.push(javaPackage);
-		return javaPackage;
-	}
-
-	addItem(pathName: string) {
-		if (pathName.endsWith('.class')) {
-			const packageName = path.dirname(pathName).replace(/\//g, '.');
-			const className = path.basename(pathName);
-			const javaPackage = this.packages.find(p => p.name === packageName) || this.newJavaPackage(packageName);
-			javaPackage.javaClasses.push(new JavaClass(className));
-		}
-	}
+export interface File {
+	readonly name: string;
 }
 
-export class FileNode {
-	constructor(readonly name: string) {}
+export interface Folder extends File {
+	readonly files: File[];
 }
 
-export class Folder extends FileNode {
-	readonly childs: FileNode[] = [];
+export interface JavaClass extends File {
+	readonly nested: JavaClass[];
 }
 
-
-export class JavaClass {
-	constructor(readonly name: string) {}
+export interface JavaPackage extends Folder {
+	readonly classes: JavaClass[];
 }
-export class JavaPackage {
-	readonly javaClasses: JavaClass[] = [];
-	readonly files: FileNode[] = [];
 
-	constructor(readonly name: string) {}
+export interface JarContent extends Folder {
+	readonly packages: JavaPackage[];
+}
+
+export function isFile(object: any): object is File {
+	return object.hasOwnProperty('name');
+}
+
+export function isFolder(object: any): object is Folder {
+	return isFile(object) && object.hasOwnProperty('files');
+}
+
+export function isJavaClass(object: any): object is JavaClass {
+	return isFile(object) && object.hasOwnProperty('nested');
+}
+
+export function isJavaPackage(object: any): object is JavaPackage {
+	return isFolder(object) && object.hasOwnProperty('classes');
 }

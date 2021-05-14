@@ -13,6 +13,7 @@
 	flex-direction: row;
 	flex-shrink: 0;
 	flex-grow: 0;
+	line-height: 1.5em;
 	align-items: center;
 	cursor: pointer;
 }
@@ -21,11 +22,18 @@
 	margin: 0 5px;
 }
 
-.toggle-icon {
-	width: 16px;
+.fold-icon {
+	color: var(--vscode-icon-foreground);
+	width: 1.25em;
+	height: 1.25em;
 }
 
-.icon-package { color: var(--vscode-symbolIcon-packageForeground) }
-.icon-class { color: var(--vscode-symbolIcon-classForeground) }
-.icon-file { color: var(--vscode-symbolIcon-fileForeground) }
-.icon-folder { color: var(--vscode-symbolIcon-folderForeground) }
+.type-icon {
+	width: 1.25em;
+	height: 1.25em;
+}
+
+.package { color: var(--vscode-symbolIcon-packageForeground) }
+.class { color: var(--vscode-symbolIcon-classForeground) }
+.file { color: var(--vscode-symbolIcon-fileForeground) }
+.folder { color: var(--vscode-symbolIcon-folderForeground) }
