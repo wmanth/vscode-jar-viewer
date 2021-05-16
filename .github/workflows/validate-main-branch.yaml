@@ -13,5 +13,4 @@ jobs:
         with:
           node-version: '15'
       - run: npm ci
-      - run: npm run compile
       - run: npx --yes vsce package
