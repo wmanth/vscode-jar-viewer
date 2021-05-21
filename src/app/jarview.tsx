@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';
 import { VscFile, VscFolder, VscFolderOpened, VscPackage, VscSymbolClass } from 'react-icons/vsc';
-import { JarContent, JavaPackage, File, Folder, isFolder, isJavaPackage, isJavaClass, JavaClass } from './model';
+import * as Model from './model';
 
 import './jarview.css';
 
@@ -60,7 +60,7 @@ const TreeViewItemGroup = (props: TreeViewItemGroupProps) =>
 
 
 interface JarViewProps {
-	jarContent: JarContent
+	jarContent: Model.JarContent
 	vsCodeApi: any
 }
 
@@ -77,19 +77,19 @@ export const JarView = (props: JarViewProps) =>
 	</div>;
 
 class CreateTreeItemProps implements TreeItemProps {
-	static fromFile(file: File) {
+	static fromFile(file: Model.File) {
 		return (
-			isFolder(file) ? this.fromFolder(file) :
-			isJavaClass(file) ? this.fromJavaClass(file) :
+			Model.isFolder(file) ? this.fromFolder(file) :
+			Model.isJavaClass(file) ? this.fromJavaClass(file) :
 			new CreateTreeItemProps(
 				file.name,
 				ItemType.file)
 		);
 	}
 
-	static fromFolder(folder: Folder) {
+	static fromFolder(folder: Model.Folder) {
 		return (
-			isJavaPackage(folder) ? this.fromJavaPackage(folder) :
+			Model.isJavaPackage(folder) ? this.fromJavaPackage(folder) :
 			new CreateTreeItemProps(
 				folder.name,
 				ItemType.folder,
@@ -97,7 +97,7 @@ class CreateTreeItemProps implements TreeItemProps {
 		);
 	}
 
-	static fromJavaPackage(javaPackage: JavaPackage) {
+	static fromJavaPackage(javaPackage: Model.JavaPackage) {
 		return new CreateTreeItemProps(
 			javaPackage.name,
 			ItemType.package,
@@ -105,7 +105,7 @@ class CreateTreeItemProps implements TreeItemProps {
 			 ...javaPackage.files.sort(byFileName).map(fileToItemProps)]);
 	}
 
-	static fromJavaClass(javaClass: JavaClass) {
+	static fromJavaClass(javaClass: Model.JavaClass) {
 		return new CreateTreeItemProps(
 			javaClass.name,
 			ItemType.class,
@@ -118,7 +118,7 @@ class CreateTreeItemProps implements TreeItemProps {
 		readonly childs?: TreeItemProps[]) {}
 }
 
-const byFileName = (left: File, right: File) => left.name.localeCompare(right.name);
-const fileToItemProps = (file: File) => CreateTreeItemProps.fromFile(file);
-const javaClassToItemProps = (javaClass: JavaClass) => CreateTreeItemProps.fromJavaClass(javaClass);
-const javaPackageToItemProps = (javaPackage: JavaPackage) => CreateTreeItemProps.fromJavaPackage(javaPackage);
+const byFileName = (left: Model.File, right: Model.File) => left.name.localeCompare(right.name);
+const fileToItemProps = (file: Model.File) => CreateTreeItemProps.fromFile(file);
+const javaClassToItemProps = (javaClass: Model.JavaClass) => CreateTreeItemProps.fromJavaClass(javaClass);
+const javaPackageToItemProps = (javaPackage: Model.JavaPackage) => CreateTreeItemProps.fromJavaPackage(javaPackage);

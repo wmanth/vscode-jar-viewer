@@ -1,19 +1,19 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as JSZip from 'jszip';
-import { JarContent, File, Folder, JavaPackage, JavaClass } from './app/model';
+import * as Model from './app/model';
 
 const PATH_SEPARATOR = '/';
 
-class FileImpl implements File {
+class File implements Model.File {
 	constructor(readonly name: string) {}
 }
 
-class FolderImpl extends FileImpl implements Folder {
-	readonly files: FileImpl[] = [];
+class Folder extends File implements Model.Folder {
+	readonly files: File[] = [];
 
 	newFolder(name: string) {
-		const folder = new FolderImpl(name);
+		const folder = new Folder(name);
 		this.files.push(folder);
 		return folder;
 	}
@@ -25,25 +25,25 @@ class FolderImpl extends FileImpl implements Folder {
 
 		if (pathSegment && pathSegment !== '.') {
 			const found = this.files.find(file => file.name === pathSegment);
-			const folder = (found instanceof FolderImpl) ? found : this.newFolder(pathSegment);
+			const folder = (found instanceof Folder) ? found : this.newFolder(pathSegment);
 			folder.addFile(path.join(...filePathSegments, fileName));
 		}
 		else {
-			this.files.push(new FileImpl(fileName));
+			this.files.push(new File(fileName));
 		}
 	}
 }
 
-class JavaClassImpl extends FileImpl implements JavaClass {
+class JavaClass extends File implements Model.JavaClass {
 	readonly nested: JavaClass[] = [];
 }
 
-class JavaPackageImpl extends FolderImpl implements JavaPackage {
+class JavaPackage extends Folder implements Model.JavaPackage {
 	readonly classes: JavaClass[] = [];
 }
 
-class JarContentImpl extends FolderImpl implements JarContent {
-	readonly packages: JavaPackageImpl[] = [];
+class JarContent extends Folder implements Model.JarContent {
+	readonly packages: JavaPackage[] = [];
 
 	private packageNamed(name: string) {
 		return this.packages.find(pck => pck.name === name);
@@ -67,7 +67,7 @@ class JarContentImpl extends FolderImpl implements JarContent {
 		const javaPackage =
 			this.packages.find(p => p.name === packageName) ||
 			this.newJavaPackage(packageName);
-		javaPackage.classes.push(new JavaClassImpl(className));
+		javaPackage.classes.push(new JavaClass(className));
 	}
 
 	addFile(filePath: string) {
@@ -87,7 +87,7 @@ class JarContentImpl extends FolderImpl implements JarContent {
 	}
 
 	private newJavaPackage(name: string) {
-		const javaPackage = new JavaPackageImpl(name);
+		const javaPackage = new JavaPackage(name);
 		this.packages.push(javaPackage);
 		return javaPackage;
 	}
@@ -109,7 +109,7 @@ export default class JarDocument implements vscode.CustomDocument {
 				fileList.push(zipObject.name);
 			}
 		});
-		return new JarContentImpl(fileList);
+		return new JarContent(fileList);
 	}
 
 	private constructor(
