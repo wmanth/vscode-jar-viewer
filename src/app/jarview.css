@@ -11,11 +11,20 @@
 .list-item {
 	display: flex;
 	flex-direction: row;
-	flex-shrink: 0;
-	flex-grow: 0;
 	line-height: 1.5em;
 	align-items: center;
 	cursor: pointer;
+	overflow: hidden;
+}
+
+.list-item:hover {
+	background: var(--vscode-editor-hoverHighlightBackground);
+}
+
+.list-item, .fold-icon, .type-icon
+{
+	flex-shrink: 0;
+	flex-grow: 0;
 }
 
 .item-title {
