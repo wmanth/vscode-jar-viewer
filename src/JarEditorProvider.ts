@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import JarDocument from './JarDocument';
 
-export class JarEditorProvider implements vscode.CustomEditorProvider {
+export default class JarEditorProvider implements vscode.CustomEditorProvider {
 
 	public static register(context: vscode.ExtensionContext): vscode.Disposable {
 		const provider = new JarEditorProvider(context);
