@@ -6,14 +6,17 @@ import * as Model from './app/model';
 const PATH_SEPARATOR = '/';
 
 class File implements Model.File {
-	constructor(readonly name: string) {}
+	readonly path: string;
+	constructor(readonly name: string, parent?: Folder) {
+		this.path = parent ? path.join(parent.path, name) : name;
+	}
 }
 
 class Folder extends File implements Model.Folder {
 	readonly files: File[] = [];
 
 	newFolder(name: string) {
-		const folder = new Folder(name);
+		const folder = new Folder(name, this);
 		this.files.push(folder);
 		return folder;
 	}
@@ -29,7 +32,7 @@ class Folder extends File implements Model.Folder {
 			folder.addFile(path.join(...filePathSegments, fileName));
 		}
 		else {
-			this.files.push(new File(fileName));
+			this.files.push(new File(fileName, this));
 		}
 	}
 }
@@ -66,8 +69,8 @@ class JarContent extends Folder implements Model.JarContent {
 		const className = path.basename(pathName);
 		const javaPackage =
 			this.packages.find(p => p.name === packageName) ||
-			this.newJavaPackage(packageName);
-		javaPackage.classes.push(new JavaClass(className));
+			this.newJavaPackage(packageName, this);
+		javaPackage.classes.push(new JavaClass(className, javaPackage));
 	}
 
 	addFile(filePath: string) {
@@ -86,8 +89,8 @@ class JarContent extends Folder implements Model.JarContent {
 		}
 	}
 
-	private newJavaPackage(name: string) {
-		const javaPackage = new JavaPackage(name);
+	private newJavaPackage(name: string, parent: JarContent) {
+		const javaPackage = new JavaPackage(name, parent);
 		this.packages.push(javaPackage);
 		return javaPackage;
 	}
@@ -96,8 +99,8 @@ class JarContent extends Folder implements Model.JarContent {
 export default class JarDocument implements vscode.CustomDocument {
 
 	static async create(uri: vscode.Uri): Promise<JarDocument> {
-		const fileList = await JarDocument.readFile(uri);
-		return new JarDocument(uri, fileList);
+		const jarContent = await JarDocument.readFile(uri);
+		return new JarDocument(uri, jarContent);
 	}
 
 	private static async readFile(uri: vscode.Uri): Promise<JarContent> {
