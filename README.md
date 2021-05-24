@@ -14,6 +14,11 @@ For Bugs or feature requests please use the GitHub issues page https://github.co
 
 ## Release Notes
 
+### 1.0.1
+
+* Highlight the hovered tree node
+* Persist the folding state of tree nodes
+
 ### 1.0.0
 
 Initial release of the JAR viewer extension.
