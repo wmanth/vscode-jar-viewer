@@ -1,6 +1,6 @@
 export interface File {
 	readonly name: string;
-	readonly path: string;
+	readonly uri: string;
 }
 
 export interface Folder extends File {
@@ -20,7 +20,7 @@ export interface JarContent extends Folder {
 }
 
 export function isFile(object: any): object is File {
-	return object.hasOwnProperty('name') && object.hasOwnProperty('path');
+	return object && object.hasOwnProperty('name') && object.hasOwnProperty('uri');
 }
 
 export function isFolder(object: any): object is Folder {
