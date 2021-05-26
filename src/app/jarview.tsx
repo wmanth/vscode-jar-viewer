@@ -154,7 +154,7 @@ class CreateTreeItemProps implements TreeItemProps {
 			Model.isJavaClass(file) ? this.fromJavaClass(file) :
 			new CreateTreeItemProps(
 				file.name,
-				file.path,
+				file.uri,
 				ItemType.file)
 		);
 	}
@@ -164,7 +164,7 @@ class CreateTreeItemProps implements TreeItemProps {
 			Model.isJavaPackage(folder) ? this.fromJavaPackage(folder) :
 			new CreateTreeItemProps(
 				folder.name,
-				folder.path,
+				folder.uri,
 				ItemType.folder,
 				folder.files.sort(byFileName).map(fileToItemProps))
 		);
@@ -173,7 +173,7 @@ class CreateTreeItemProps implements TreeItemProps {
 	static fromJavaPackage(javaPackage: Model.JavaPackage) {
 		return new CreateTreeItemProps(
 			javaPackage.name,
-			javaPackage.path,
+			javaPackage.uri,
 			ItemType.package,
 			[...javaPackage.classes.sort(byFileName).map(javaClassToItemProps),
 			 ...javaPackage.files.sort(byFileName).map(fileToItemProps)]);
@@ -182,7 +182,7 @@ class CreateTreeItemProps implements TreeItemProps {
 	static fromJavaClass(javaClass: Model.JavaClass) {
 		return new CreateTreeItemProps(
 			javaClass.name,
-			javaClass.path,
+			javaClass.uri,
 			ItemType.class,
 			javaClass.nested.sort(byFileName).map(javaClassToItemProps));
 	}
