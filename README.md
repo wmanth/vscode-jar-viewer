@@ -14,6 +14,10 @@ For Bugs or feature requests please use the GitHub issues page https://github.co
 
 ## Release Notes
 
+### 1.0.2
+
+* Preserve the vertical scroll position
+
 ### 1.0.1
 
 * Highlight the hovered tree node

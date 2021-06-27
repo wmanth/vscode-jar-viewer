@@ -2,7 +2,7 @@
 	"name": "jar-viewer",
 	"displayName": "JAR Viewer",
 	"description": "Lists classes and files inside JAR archives.",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"publisher": "wmanth",
 	"author": {
 		"name": "Wolfram Manthey"
