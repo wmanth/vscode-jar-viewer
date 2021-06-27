@@ -80,6 +80,7 @@ const TreeViewItemGroup = (props: TreeViewItemGroupProps) =>
 
 interface JarViewerState {
 	expandedItems: string[]
+	topPosition: number
 }
 
 interface VSCodeAPI {
@@ -95,15 +96,32 @@ interface JarViewProps {
 export const JarView = (props: JarViewProps) => {
 	const lastState = props.vsCodeApi.getState();
 	const [expandedItems, setExpandedItems] = React.useState(new Set(lastState?.expandedItems));
+	const [topPosition, setTopPosition] = React.useState(lastState?.topPosition);
 
 	const handleDidSelectItem = (path: string) => {
 		expandedItems.has(path) ?
 			expandedItems.delete(path) :
 			expandedItems.add(path);
-		props.vsCodeApi.setState({ expandedItems: Array.from(expandedItems) });
 		setExpandedItems(new Set(expandedItems));
 	};
-	
+
+	window.onscroll = () => {
+		setTopPosition(window.scrollY);
+	};
+
+	React.useEffect(() => {
+		// scroll to the last top position after mounting the widget
+		window.scroll({ top: topPosition });
+	}, []);
+
+	React.useEffect(() => {
+		// persist the view state after any state change
+		props.vsCodeApi.setState({
+			expandedItems: Array.from(expandedItems),
+			topPosition: topPosition
+		});
+	}, [expandedItems, topPosition]);
+
 	return (
 		<jarViewContext.Provider value= {
 			{ expandedItems: expandedItems, onDidSelectItem: handleDidSelectItem }
