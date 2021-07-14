@@ -1,29 +1,29 @@
 import * as vscode from 'vscode';
-import * as JSZip from 'jszip';
-import JarContent from './Jar';
+import * as jszip from 'jszip';
+import JarContent from './JarContent';
 
 export default class JarDocument implements vscode.CustomDocument {
 
-	static async create(uri: vscode.Uri): Promise<JarDocument> {
-		const jarContent = await JarDocument.readFile(uri);
-		return new JarDocument(uri, jarContent);
-	}
+	constructor(readonly uri: vscode.Uri) {}
 
-	private static async readFile(uri: vscode.Uri): Promise<JarContent> {
-		const rawData = await vscode.workspace.fs.readFile(uri);
-		const zipData = await JSZip.loadAsync(rawData);
+	async readJarContent(): Promise<JarContent> {
+		const rawData = await vscode.workspace.fs.readFile(this.uri);
+		const zipData = await jszip.loadAsync(rawData);
 		const fileList: string[] = [];
 		zipData.forEach((_, zipObject) => {
 			if (!zipObject.dir) {
 				fileList.push(zipObject.name);
 			}
 		});
-		return new JarContent(fileList);
+		return new JarContent(this.uri, fileList);
 	}
 
-	private constructor(
-		readonly uri: vscode.Uri,
-		readonly content: JarContent) {}
+	async readFileContent(path: string): Promise<string|undefined> {
+		const rawData = await vscode.workspace.fs.readFile(this.uri);
+		const zipData = await jszip.loadAsync(rawData);
+		const zipObject = zipData.file(path.substring(1)); // remove the leading '/'
+		return zipObject?.async('text');
+	}
 
 	dispose(): void {}
 }

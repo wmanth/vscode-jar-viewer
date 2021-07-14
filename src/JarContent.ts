@@ -2,13 +2,16 @@ import { Uri } from 'vscode';
 import * as path from 'path';
 import * as Model from './app/model';
 
+export const JAR_CONTENT_SCHEME = "jar";
+export const JAR_CONTENT_SEPARATOR = '!';
+
 const PATH_SEPARATOR = '/';
 const PACKAGE_SEPARATOR = '.';
 
 class File implements Model.File {
 	readonly uri: string;
 	constructor(readonly name: string, uri: Uri) {
-		this.uri = uri.toString();
+		this.uri = uri.toString(true);
 	}
 
 	joinUri(path: string) {
@@ -52,14 +55,15 @@ class JavaPackage extends Folder implements Model.JavaPackage {
 }
 
 export default class JarContent extends Folder implements Model.JarContent {
+
 	readonly packages: JavaPackage[] = [];
 
 	private packageNamed(name: string) {
 		return this.packages.find(pck => pck.name === name);
 	}
 
-	constructor(fileList: string[]) {
-		super('content', Uri.parse("jar:/"));
+	constructor(jarFileUri: Uri, fileList: string[]) {
+		super('content', Uri.parse(`${JAR_CONTENT_SCHEME}:${jarFileUri.toString(true)}${JAR_CONTENT_SEPARATOR}`));
 
 		fileList
 			.filter(path => path.endsWith('.class'))

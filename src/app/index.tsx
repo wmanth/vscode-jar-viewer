@@ -1,5 +1,4 @@
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import * as reactDOM from 'react-dom';
 import { JarView } from './jarview';
 import { JarContent } from './model';
 
@@ -12,9 +11,9 @@ declare global {
 	}
 }
 
-const vsCodeApi = window.acquireVsCodeApi();
-
-ReactDOM.render(
-	<JarView jarContent={ window.jarContent } vsCodeApi={ vsCodeApi }/>,
+reactDOM.render(
+	<JarView
+		jarContent={ window.jarContent }
+		vsCodeApi={ window.acquireVsCodeApi() }/>,
 	document.getElementById('root')
 );

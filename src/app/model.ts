@@ -1,3 +1,5 @@
+export const OPEN_MESSAGE = "open";
+
 export interface File {
 	readonly name: string;
 	readonly uri: string;
