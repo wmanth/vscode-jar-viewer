@@ -1,16 +1,15 @@
-import * as React from 'react';
-import { VscChevronDown, VscChevronRight } from 'react-icons/vsc';
-import { VscFile, VscFolder, VscFolderOpened, VscPackage, VscSymbolClass } from 'react-icons/vsc';
-import * as Model from './model';
+import * as react from 'react';
+import * as icons from 'react-icons/vsc';
+import * as model from './model';
 
 import './jarview.css';
 
 interface JarViewContext {
 	expandedItems: Set<string>
-	onDidSelectItem: (path: string) => void
+	onDidSelectItem: (itemProps: TreeItemProps) => void
 }
 
-const jarViewContext = React.createContext<JarViewContext>({
+const jarViewContext = react.createContext<JarViewContext>({
 	expandedItems: new Set(),
 	onDidSelectItem: undefined
 });
@@ -20,49 +19,49 @@ enum ItemState { empty, collapsed, expanded }
 
 interface TreeItemProps {
 	name: string
-	path: string
+	uri: string
 	type: ItemType
 	childs?: TreeItemProps[]
 }
 
 const TreeItem = (props: TreeItemProps) => {
-	const context = React.useContext(jarViewContext);
+	const context = react.useContext(jarViewContext);
 
 	const getItemState = () =>
 		props.childs?.length ?
-			context.expandedItems.has(props.path) ?
+			context.expandedItems.has(props.uri) ?
 				ItemState.expanded :
 				ItemState.collapsed :
 			ItemState.empty;
 
-	const [state, setState] = React.useState(getItemState());
+	const [state, setState] = react.useState(getItemState());
 
-	React.useEffect(() => setState(getItemState()),
-		[context.expandedItems, props.path]);
+	react.useEffect(() => setState(getItemState()),
+		[context.expandedItems, props.uri]);
 
-	const handleClick = () => context.onDidSelectItem(props.path);
+	const handleClick = () => context.onDidSelectItem(props);
 
 	const ToggleIcon = () =>
-		state === ItemState.collapsed ? <VscChevronRight className="fold-icon" /> :
-		state === ItemState.expanded ? <VscChevronDown className="fold-icon" /> :
+		state === ItemState.collapsed ? <icons.VscChevronRight className="fold-icon" /> :
+		state === ItemState.expanded ? <icons.VscChevronDown className="fold-icon" /> :
 		<div className="fold-icon" />;
 
 	const ItemIcon = () =>
-		props.type === ItemType.package ? <VscPackage className="type-icon package" /> :
-		props.type === ItemType.class ? <VscSymbolClass className="type-icon class" /> :
-		props.type === ItemType.file ? <VscFile className="type-icon file" /> :
-		state === ItemState.expanded ? <VscFolderOpened className="type-icon folder" /> :
-		<VscFolder className="type-icon folder" />;
+		props.type === ItemType.package ? <icons.VscPackage className="type-icon package" /> :
+		props.type === ItemType.class ? <icons.VscSymbolClass className="type-icon class" /> :
+		props.type === ItemType.file ? <icons.VscFile className="type-icon file" /> :
+		state === ItemState.expanded ? <icons.VscFolderOpened className="type-icon folder" /> :
+		<icons.VscFolder className="type-icon folder" />;
 
-	return <React.Fragment>
+	return <react.Fragment>
 		<li className="list-item" onClick={ handleClick }>
 			<ToggleIcon /><ItemIcon />
 			<span className="item-title">{ props.name }</span>
 		</li>
 		{ props.childs && state === ItemState.expanded ?
 			<TreeViewItemGroup childs={ props.childs } /> :
-			<React.Fragment /> }
-	</React.Fragment>;
+			<react.Fragment /> }
+	</react.Fragment>;
 };
 
 interface TreeViewItemGroupProps {
@@ -73,7 +72,7 @@ const TreeViewItemGroup = (props: TreeViewItemGroupProps) =>
 	<ul className="tree-list">{ props.childs.map(itemProps => <TreeItem
 		key={ itemProps.name }
 		name={ itemProps.name }
-		path={ itemProps.path }
+		uri={ itemProps.uri }
 		type={ itemProps.type }
 		childs={ itemProps.childs } />) }
 	</ul>;
@@ -86,35 +85,48 @@ interface JarViewerState {
 interface VSCodeAPI {
 	getState(): JarViewerState
 	setState(state: JarViewerState): void
+    postMessage(message: any): void;
 }
 
 interface JarViewProps {
-	jarContent: Model.JarContent
+	jarContent: model.JarContent
 	vsCodeApi: VSCodeAPI
 }
 
 export const JarView = (props: JarViewProps) => {
 	const lastState = props.vsCodeApi.getState();
-	const [expandedItems, setExpandedItems] = React.useState(new Set(lastState?.expandedItems));
-	const [topPosition, setTopPosition] = React.useState(lastState?.topPosition);
+	const [expandedItems, setExpandedItems] = react.useState(new Set(lastState?.expandedItems));
+	const [topPosition, setTopPosition] = react.useState(lastState?.topPosition);
 
-	const handleDidSelectItem = (path: string) => {
-		expandedItems.has(path) ?
-			expandedItems.delete(path) :
-			expandedItems.add(path);
-		setExpandedItems(new Set(expandedItems));
+	const handleDidSelectItem = (itemProps: TreeItemProps) => {
+		switch (itemProps.type) {
+			case ItemType.folder:
+			case ItemType.package:
+				expandedItems.has(itemProps.uri) ?
+					expandedItems.delete(itemProps.uri) :
+					expandedItems.add(itemProps.uri);
+				setExpandedItems(new Set(expandedItems));
+				break;
+
+			case ItemType.file:
+				props.vsCodeApi.postMessage({ command: model.OPEN_MESSAGE, uri: itemProps.uri });
+				break;
+
+			default:
+				break;
+		}
 	};
 
 	window.onscroll = () => {
 		setTopPosition(window.scrollY);
 	};
 
-	React.useEffect(() => {
+	react.useEffect(() => {
 		// scroll to the last top position after mounting the widget
 		window.scroll({ top: topPosition });
 	}, []);
 
-	React.useEffect(() => {
+	react.useEffect(() => {
 		// persist the view state after any state change
 		props.vsCodeApi.setState({
 			expandedItems: Array.from(expandedItems),
@@ -144,14 +156,14 @@ class CreateTreeItemProps implements TreeItemProps {
 
 	private constructor(
 		readonly name: string,
-		readonly path: string,
+		readonly uri: string,
 		readonly type: ItemType,
 		readonly childs?: TreeItemProps[]) {}
 
-	static fromFile(file: Model.File) {
+	static fromFile(file: model.File) {
 		return (
-			Model.isFolder(file) ? this.fromFolder(file) :
-			Model.isJavaClass(file) ? this.fromJavaClass(file) :
+			model.isFolder(file) ? this.fromFolder(file) :
+			model.isJavaClass(file) ? this.fromJavaClass(file) :
 			new CreateTreeItemProps(
 				file.name,
 				file.uri,
@@ -159,9 +171,9 @@ class CreateTreeItemProps implements TreeItemProps {
 		);
 	}
 
-	static fromFolder(folder: Model.Folder) {
+	static fromFolder(folder: model.Folder) {
 		return (
-			Model.isJavaPackage(folder) ? this.fromJavaPackage(folder) :
+			model.isJavaPackage(folder) ? this.fromJavaPackage(folder) :
 			new CreateTreeItemProps(
 				folder.name,
 				folder.uri,
@@ -170,7 +182,7 @@ class CreateTreeItemProps implements TreeItemProps {
 		);
 	}
 
-	static fromJavaPackage(javaPackage: Model.JavaPackage) {
+	static fromJavaPackage(javaPackage: model.JavaPackage) {
 		return new CreateTreeItemProps(
 			javaPackage.name,
 			javaPackage.uri,
@@ -179,7 +191,7 @@ class CreateTreeItemProps implements TreeItemProps {
 			 ...javaPackage.files.sort(byFileName).map(fileToItemProps)]);
 	}
 
-	static fromJavaClass(javaClass: Model.JavaClass) {
+	static fromJavaClass(javaClass: model.JavaClass) {
 		return new CreateTreeItemProps(
 			javaClass.name,
 			javaClass.uri,
@@ -188,7 +200,7 @@ class CreateTreeItemProps implements TreeItemProps {
 	}
 }
 
-const byFileName = (left: Model.File, right: Model.File) => left.name.localeCompare(right.name);
-const fileToItemProps = (file: Model.File) => CreateTreeItemProps.fromFile(file);
-const javaClassToItemProps = (javaClass: Model.JavaClass) => CreateTreeItemProps.fromJavaClass(javaClass);
-const javaPackageToItemProps = (javaPackage: Model.JavaPackage) => CreateTreeItemProps.fromJavaPackage(javaPackage);
+const byFileName = (left: model.File, right: model.File) => left.name.localeCompare(right.name);
+const fileToItemProps = (file: model.File) => CreateTreeItemProps.fromFile(file);
+const javaClassToItemProps = (javaClass: model.JavaClass) => CreateTreeItemProps.fromJavaClass(javaClass);
+const javaPackageToItemProps = (javaPackage: model.JavaPackage) => CreateTreeItemProps.fromJavaPackage(javaPackage);

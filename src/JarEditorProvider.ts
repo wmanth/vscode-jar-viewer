@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as model from './app/model';
 import JarDocument from './JarDocument';
 
-export default class JarEditorProvider implements vscode.CustomEditorProvider {
+export default class JarEditorProvider implements vscode.CustomReadonlyEditorProvider<JarDocument> {
 
 	public static register(context: vscode.ExtensionContext): vscode.Disposable {
 		const provider = new JarEditorProvider(context);
@@ -19,28 +20,11 @@ export default class JarEditorProvider implements vscode.CustomEditorProvider {
 	private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<JarDocument>>();
 	public readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
 
-	saveCustomDocument(document: vscode.CustomDocument, cancellation: vscode.CancellationToken): Thenable<void> {
-		throw new Error("Method 'saveCustomDocument' not implemented.");
+	openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): JarDocument {
+		return new JarDocument(uri);
 	}
 
-	saveCustomDocumentAs(document: vscode.CustomDocument, destination: vscode.Uri, cancellation: vscode.CancellationToken): Thenable<void> {
-		throw new Error("Method 'saveCustomDocumentAs' not implemented.");
-	}
-
-	revertCustomDocument(document: vscode.CustomDocument, cancellation: vscode.CancellationToken): Thenable<void> {
-		throw new Error("Method 'revertCustomDocument' not implemented.");
-	}
-
-	backupCustomDocument(document: vscode.CustomDocument, context: vscode.CustomDocumentBackupContext, cancellation: vscode.CancellationToken): Thenable<vscode.CustomDocumentBackup> {
-		throw new Error("Method 'backupCustomDocument' not implemented.");
-	}
-
-	async openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): Promise<JarDocument> {
-		const document = await JarDocument.create(uri);
-		return document;
-	}
-
-	resolveCustomEditor(document: vscode.CustomDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {
+	async resolveCustomEditor(document: vscode.CustomDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {
 		if (document instanceof JarDocument) {
 			webviewPanel.webview.options = {
 				enableScripts: true,
@@ -48,19 +32,35 @@ export default class JarEditorProvider implements vscode.CustomEditorProvider {
 					vscode.Uri.file(path.join(this.context.extensionPath, "out-app"))
 				]
 			};
-			webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview, document);
+			webviewPanel.webview.html = await this.getHtmlForWebview(webviewPanel.webview, document);
+			webviewPanel.webview.onDidReceiveMessage(
+				message => this.handleMessage(message),
+				undefined,
+				this.context.subscriptions
+			);
+		}
+	}
+
+	private async handleMessage(message: any) {
+		switch (message.command) {
+			case model.OPEN_MESSAGE:
+				const uri = vscode.Uri.parse(message.uri);
+				const document = await vscode.workspace.openTextDocument(uri);
+				vscode.window.showTextDocument(document, { preview: true });
+				return;
 		}
 	}
 
 	/**
 	 * Get the static html used for the editor webviews.
 	 */
-	private getHtmlForWebview(webview: vscode.Webview, document: JarDocument): string {
+	private async getHtmlForWebview(webview: vscode.Webview, document: JarDocument): Promise<string> {
 		// Local path to main script run in the webview
 		const reactAppPath = path.join(this.context.extensionPath, "out-app", "jar-viewer.js");
 		const reactAppUri = vscode.Uri.file(reactAppPath).with({ scheme: "vscode-resource" });
 
-		const jarContentJson = JSON.stringify(document.content);
+		const jarContent = await document.readJarContent();
+		const jarContentJson = JSON.stringify(jarContent);
 
 		return /* html */`
 			<!DOCTYPE html>
