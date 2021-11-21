@@ -5,6 +5,10 @@ import JarDocument from './JarDocument';
 
 export default class JarEditorProvider implements vscode.CustomReadonlyEditorProvider<JarDocument> {
 
+	private readonly openDocuments = new Map<string, { document: JarDocument, webview: vscode.Webview }>();
+	private readonly fileSystemWatcher = vscode.workspace.createFileSystemWatcher("**/*.jar", true);
+	private readonly subscriptions = new Array<vscode.Disposable>();
+
 	public static register(context: vscode.ExtensionContext): vscode.Disposable {
 		const provider = new JarEditorProvider(context);
 		const providerRegistration = vscode.window.registerCustomEditorProvider(JarEditorProvider.viewType, provider);
@@ -15,16 +19,31 @@ export default class JarEditorProvider implements vscode.CustomReadonlyEditorPro
 
 	constructor(
 		private readonly context: vscode.ExtensionContext
-	) { }
+	) {
+		this.subscriptions.push(vscode.workspace.onDidCloseTextDocument(document => {
+			this.openDocuments.delete(document.uri.toString());
+		}));
 
-	private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<JarDocument>>();
-	public readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
+		this.subscriptions.push(this.fileSystemWatcher.onDidChange(async uri => {
+			const open = this.openDocuments.get(uri.toString());
+			if (open) {
+				open.webview.html = await this.getHtmlForDocument(open.document);
+			}
+		}));
+	}
 
-	openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): JarDocument {
+	dispose() {
+		this.fileSystemWatcher.dispose();
+		this.openDocuments.clear();
+		this.subscriptions.forEach(subscription => subscription.dispose());
+		this.subscriptions.length = 0;
+	}
+
+	openCustomDocument(uri: vscode.Uri): JarDocument {
 		return new JarDocument(uri);
 	}
 
-	async resolveCustomEditor(document: vscode.CustomDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {
+	async resolveCustomEditor(document: vscode.CustomDocument, webviewPanel: vscode.WebviewPanel) {
 		if (document instanceof JarDocument) {
 			webviewPanel.webview.options = {
 				enableScripts: true,
@@ -32,12 +51,13 @@ export default class JarEditorProvider implements vscode.CustomReadonlyEditorPro
 					vscode.Uri.file(path.join(this.context.extensionPath, "out-app"))
 				]
 			};
-			webviewPanel.webview.html = await this.getHtmlForWebview(webviewPanel.webview, document);
+			webviewPanel.webview.html = await this.getHtmlForDocument(document);
 			webviewPanel.webview.onDidReceiveMessage(
 				message => this.handleMessage(message),
 				undefined,
 				this.context.subscriptions
 			);
+			this.openDocuments.set(document.uri.toString(), { document, webview: webviewPanel.webview });
 		}
 	}
 
@@ -54,7 +74,7 @@ export default class JarEditorProvider implements vscode.CustomReadonlyEditorPro
 	/**
 	 * Get the static html used for the editor webviews.
 	 */
-	private async getHtmlForWebview(webview: vscode.Webview, document: JarDocument): Promise<string> {
+	private async getHtmlForDocument(document: JarDocument): Promise<string> {
 		// Local path to main script run in the webview
 		const reactAppPath = path.join(this.context.extensionPath, "out-app", "jar-viewer.js");
 		const reactAppUri = vscode.Uri.file(reactAppPath).with({ scheme: "vscode-resource" });
@@ -86,5 +106,4 @@ export default class JarEditorProvider implements vscode.CustomReadonlyEditorPro
 			</body>
 			</html>`;
 	}
-
 }
