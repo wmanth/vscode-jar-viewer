@@ -22,6 +22,11 @@ For Bugs or feature requests please use the GitHub issues page https://github.co
 
 ## Release Notes
 
+### 1.1.1
+
+* Update open editor views when the jar file has changed
+* Added *.srcjar, *.aar and *.war as supported file types
+
 ### 1.1.0
 
 * Preview text files from the jar archive
