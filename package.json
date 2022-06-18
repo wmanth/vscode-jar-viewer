@@ -37,6 +37,15 @@
 				"selector": [
 					{
 						"filenamePattern": "*.jar"
+					},
+					{
+						"filenamePattern": "*.srcjar"
+					},
+					{
+						"filenamePattern": "*.aar"
+					},
+					{
+						"filenamePattern": "*.war"
 					}
 				]
 			}
