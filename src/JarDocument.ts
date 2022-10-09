@@ -3,27 +3,40 @@ import * as jszip from 'jszip';
 import JarContent from './JarContent';
 
 export default class JarDocument implements vscode.CustomDocument {
+	private static openDocuments = new Map<string, JarDocument>();
+	
+	private constructor(
+		readonly uri: vscode.Uri,
+		private zip: jszip,
+		readonly content: JarContent)
+	{
+		JarDocument.openDocuments.set(uri.toString(), this);
+	}
 
-	constructor(readonly uri: vscode.Uri) {}
+	static getInstance(uri: vscode.Uri): Promise<JarDocument> | JarDocument {
+		return JarDocument.openDocuments.get(uri.toString()) ?? JarDocument.createAsync(uri);
+	}
 
-	async readJarContent(): Promise<JarContent> {
-		const rawData = await vscode.workspace.fs.readFile(this.uri);
-		const zipData = await jszip.loadAsync(rawData);
-		const fileList: string[] = [];
-		zipData.forEach((_, zipObject) => {
-			if (!zipObject.dir) {
-				fileList.push(zipObject.name);
+	private static async createAsync(uri: vscode.Uri): Promise<JarDocument> {
+		const data = await vscode.workspace.fs.readFile(uri);
+		const zip = await jszip.loadAsync(data);
+
+		const content: string[] = [];
+		zip.forEach((_, object) => {
+			if (!object.dir) {
+				content.push(object.name);
 			}
 		});
-		return new JarContent(this.uri, fileList);
+
+		return new JarDocument(uri, zip, new JarContent(uri, content));
 	}
 
 	async readFileContent(path: string): Promise<string|undefined> {
-		const rawData = await vscode.workspace.fs.readFile(this.uri);
-		const zipData = await jszip.loadAsync(rawData);
-		const zipObject = zipData.file(path.substring(1)); // remove the leading '/'
+		const zipObject = this.zip.file(path.substring(1)); // remove the leading '/'
 		return zipObject?.async('text');
 	}
 
-	dispose(): void {}
+	dispose(): void {
+		JarDocument.openDocuments.delete(this.uri.toString());
+	}
 }

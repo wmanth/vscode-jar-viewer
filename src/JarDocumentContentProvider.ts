@@ -45,7 +45,7 @@ export default class JarDocumentContentProvider implements vscode.TextDocumentCo
 	async provideTextDocumentContent(uri: vscode.Uri): Promise<string|undefined> {
 		this.openDocumentURIs.add(uri);
 		const [jarFileUri, contentFilePath] = uri.path.split(jar.JAR_CONTENT_SEPARATOR);
-		const jarDocument = new JarDocument(vscode.Uri.parse(jarFileUri));
+		const jarDocument = await JarDocument.getInstance(vscode.Uri.parse(jarFileUri));
 		return jarDocument.readFileContent(contentFilePath);
 	}
 }

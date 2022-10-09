@@ -39,8 +39,8 @@ export default class JarEditorProvider implements vscode.CustomReadonlyEditorPro
 		this.subscriptions.length = 0;
 	}
 
-	openCustomDocument(uri: vscode.Uri): JarDocument {
-		return new JarDocument(uri);
+	openCustomDocument(uri: vscode.Uri): Promise<JarDocument> | JarDocument {
+		return JarDocument.getInstance(uri);
 	}
 
 	async resolveCustomEditor(document: vscode.CustomDocument, webviewPanel: vscode.WebviewPanel) {
@@ -65,9 +65,7 @@ export default class JarEditorProvider implements vscode.CustomReadonlyEditorPro
 		switch (message.command) {
 			case model.OPEN_MESSAGE:
 				const uri = vscode.Uri.parse(message.uri);
-				const document = await vscode.workspace.openTextDocument(uri);
-				vscode.window.showTextDocument(document, { preview: true });
-				return;
+				vscode.commands.executeCommand('vscode.open', uri);
 		}
 	}
 
@@ -79,8 +77,7 @@ export default class JarEditorProvider implements vscode.CustomReadonlyEditorPro
 		const reactAppPath = path.join(this.context.extensionPath, "out-app", "jar-viewer.js");
 		const reactAppUri = vscode.Uri.file(reactAppPath).with({ scheme: "vscode-resource" });
 
-		const jarContent = await document.readJarContent();
-		const jarContentJson = JSON.stringify(jarContent);
+		const jarContentJson = JSON.stringify(document.content);
 
 		return /* html */`
 			<!DOCTYPE html>
