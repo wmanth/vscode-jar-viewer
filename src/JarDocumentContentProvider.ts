@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as jar from './JarContent';
 import JarDocument from './JarDocument';
+import { JAR_CONTENT_SCHEME } from './Jar';
 
 export default class JarDocumentContentProvider implements vscode.TextDocumentContentProvider {
 
@@ -11,7 +11,7 @@ export default class JarDocumentContentProvider implements vscode.TextDocumentCo
 
 	public static register(context: vscode.ExtensionContext): vscode.Disposable {
 		const provider = new JarDocumentContentProvider(context);
-		const providerRegistration = vscode.workspace.registerTextDocumentContentProvider(jar.JAR_CONTENT_SCHEME, provider);
+		const providerRegistration = vscode.workspace.registerTextDocumentContentProvider(JAR_CONTENT_SCHEME, provider);
 		return providerRegistration;
 	}
 
@@ -44,8 +44,6 @@ export default class JarDocumentContentProvider implements vscode.TextDocumentCo
 
 	async provideTextDocumentContent(uri: vscode.Uri): Promise<string|undefined> {
 		this.openDocumentURIs.add(uri);
-		const [jarFileUri, contentFilePath] = uri.path.split(jar.JAR_CONTENT_SEPARATOR);
-		const jarDocument = await JarDocument.getInstance(vscode.Uri.parse(jarFileUri));
-		return jarDocument.readFileContent(contentFilePath);
+		return JarDocument.readContent(uri);
 	}
 }
