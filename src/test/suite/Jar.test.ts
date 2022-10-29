@@ -1,89 +1,36 @@
 import { expect } from 'chai';
-import * as model from '../../app/model';
-import JarContent from '../../JarContent';
-import { Uri } from 'vscode';
+import * as Jar from '../../Jar';
 
-function checkNameAndUri(file: model.File | undefined, name: string, uri: string) {
-	expect(file?.name, `file name is '${name}'`).equals(name);
-	expect(file?.uri, `file uri is '${uri}'`).equals(uri);
-}
-
-suite("JarContent", () => {
-	test("without content", () => {
-		const jarContent = new JarContent(Uri.file('/jars/test.jar'), []);
-		expect(jarContent.files.length, 'Archive has no files').equals(0);
-		expect(jarContent.packages.length, 'Archive has no packages').equals(0);
+suite("Jar.trim", () => {
+	test("trim none", () => {
+		expect(Jar.trim('folder/file.ext')).equals('folder/file.ext');
 	});
 
-	test("with file", () => {
-		const jarContent = new JarContent(Uri.file('/jars/test.jar'), ['file.txt']);
-		expect(jarContent.files.length, 'Archive has 1 file').equals(1);
-		expect(jarContent.packages.length, 'Archive has no packages').equals(0);
-
-		const file = jarContent.files.pop();
-		checkNameAndUri(file, 'file.txt', 'jar:file:/jars/test.jar!/file.txt');
+	test("trim single", () => {
+		expect(Jar.trim('/folder/file.ext')).equals('folder/file.ext');
 	});
 
-	test("with file in subfolder", () => {
-		const jarContent = new JarContent(Uri.file('/jars/test.jar'), ['foo/bar/file.txt']);
-		expect(jarContent.files.length, 'Archive has 1 file').equals(1);
-		expect(jarContent.packages.length, 'Archive has no packages').equals(0);
+	test("trim double", () => {
+		expect(Jar.trim('//folder/file.ext')).equals('folder/file.ext');
+	});
+});
 
-		const foo: unknown = jarContent.files.pop();
-		expect(model.isFolder(foo), "'foo' is a folder").true;
-
-		const fooFolder = foo as model.Folder;
-		expect(fooFolder.files.length, "'foo' has 1 child").equals(1);
-		checkNameAndUri(fooFolder, 'foo', 'jar:file:/jars/test.jar!/foo');
-
-		const bar = fooFolder.files.pop();
-		expect(model.isFolder(foo), "'bar' is a folder").true;
-
-		const barFolder = bar as model.Folder;
-		expect(barFolder.files.length, "'bar' has 1 child").equals(1);
-		checkNameAndUri(barFolder, 'bar', 'jar:file:/jars/test.jar!/foo/bar');
-
-		const file = barFolder.files.pop() as model.File;
-		expect(model.isFile(file), "'file.txt' is a file").true;
-		checkNameAndUri(file, 'file.txt', 'jar:file:/jars/test.jar!/foo/bar/file.txt');
+suite("Jar.split", () => {
+	test("split none", () => {
+		const test = Jar.split("file:/folder/file.ext");
+		expect(test.base).equals("file:/folder/file.ext");
+		expect(test.path).equals("");
 	});
 
-	test("with Java class in package", () => {
-		const jarContent = new JarContent(Uri.file('/jars/test.jar'), ['net/wmanth/test.class']);
-		expect(jarContent.files.length, 'contains no files').equals(0);
-		expect(jarContent.packages.length, 'contains 1 package').equals(1);
-
-		const javaPackage = jarContent.packages.pop();
-		expect(model.isJavaPackage(javaPackage), "'net.wmanth' is a Java package").true;
-		expect(javaPackage?.files.length, "'net.wmanth' contains no files").equals(0);
-		expect(javaPackage?.classes.length, "'net.wmanth' contains 1 Java class").equals(1);
-		checkNameAndUri(javaPackage, 'net.wmanth', 'jar:file:/jars/test.jar!/net/wmanth');
-
-		const javaClass = javaPackage!.classes.pop();
-		checkNameAndUri(javaClass, 'test.class', 'jar:file:/jars/test.jar!/net/wmanth/test.class');
+	test("split single", () => {
+		const test = Jar.split("jar:/folder/archive.jar!/path/file.ext");
+		expect(test.base).equals("jar:/folder/archive.jar");
+		expect(test.path).equals("/path/file.ext");
 	});
 
-	test("with file in subfolder in package", () => {
-		const jarContent = new JarContent(Uri.file('/jars/test.jar'), [
-			'net/wmanth/test.class',
-			'net/wmanth/etc/config.yaml'
-		]);
-		expect(jarContent.files.length, 'Archive has no files').equals(0);
-		expect(jarContent.packages.length, 'Archive has 1 package').equals(1);
-
-		const packageName = 'net.wmanth';
-		const javaPackage = jarContent.packages.pop();
-		expect(model.isJavaPackage(javaPackage), `${packageName} is a Java package`).true;
-		expect(javaPackage?.files.length, `${packageName} contains 1 file`).equals(1);
-		expect(javaPackage?.classes.length, `${packageName} contains 1 class`).equals(1);
-
-		const etc: unknown = javaPackage?.files.pop();
-		const etcFolder = etc as model.Folder;
-		expect(model.isFolder(etcFolder)).true;
-		checkNameAndUri(etcFolder, 'etc', 'jar:file:/jars/test.jar!/net/wmanth/etc');
-
-		const file = etcFolder.files.pop();
-		expect(model.isFile(file)).true;
-		checkNameAndUri(file, 'config.yaml', 'jar:file:/jars/test.jar!/net/wmanth/etc/config.yaml');
+	test("split multiple", () => {
+		const test = Jar.split("jar:/folder/outer.jar!/inner.jar!/path/file.ext");
+		expect(test.base).equals("jar:/folder/outer.jar!/inner.jar");
+		expect(test.path).equals("/path/file.ext");
 	});
 });
