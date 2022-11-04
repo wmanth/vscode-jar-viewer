@@ -22,6 +22,10 @@ For Bugs or feature requests please use the GitHub issues page https://github.co
 
 ## Release Notes
 
+### 1.2.0
+
+* Added support for nested jar archives
+
 ### 1.1.1
 
 * Update open editor views when the jar file has changed
